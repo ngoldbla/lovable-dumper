@@ -1,0 +1,15 @@
+{
+  "name": "lovable-dumper",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Automate connecting Lovable projects to GitHub and renaming repos",
+  "scripts": {
+    "start": "node connect.mjs",
+    "dry-run": "node connect.mjs --dry-run",
+    "rename-only": "node connect.mjs --rename-only",
+    "discover": "node connect.mjs --discover"
+  },
+  "dependencies": {
+    "playwright": "^1.50.0"
+  }
+}
