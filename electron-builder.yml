@@ -1,0 +1,69 @@
+# electron-builder packaging + publish configuration.
+# Docs: https://www.electron.build/configuration
+#
+# Key decisions (see plan):
+#   • playwright-core is asarUnpack'd — its driver spawns child processes and
+#     resolves files on disk, which fails from inside the compressed asar.
+#   • Chromium is NOT bundled; it is downloaded at runtime into userData, so
+#     nothing browser-related needs packing/unpacking here.
+#   • GitHub releases default to "draft" (electron-builder default) — the tagged
+#     CI run uploads artifacts to a draft Release that the maintainer reviews and
+#     publishes. (Auto-update on Windows/Linux requires the release be published.)
+
+appId: com.ngoldbla.lovable-dumper
+productName: Lovable Dumper
+copyright: © Dylan Goldblatt
+
+directories:
+  output: dist
+  buildResources: build
+
+asar: true
+asarUnpack:
+  - "**/node_modules/playwright-core/**"
+
+# electron-builder only ever copies *production* dependencies (electron and
+# electron-builder, being devDependencies, are pruned automatically), so the
+# node_modules glob safely pulls in playwright-core and nothing dev-only.
+files:
+  - "src/**/*"
+  - "connect.mjs"
+  - "package.json"
+  - "node_modules/**/*"
+
+publish:
+  - provider: github
+    owner: ngoldbla
+    repo: lovable-dumper
+
+mac:
+  icon: build/icon.png
+  category: public.app-category.developer-tools
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.inherit.plist
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+
+win:
+  icon: build/icon.png
+  target:
+    - target: nsis
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+
+linux:
+  icon: build/icon.png
+  category: Utility
+  synopsis: Bulk-connect Lovable projects to GitHub and tidy up the repos
+  target:
+    - AppImage
+    - deb

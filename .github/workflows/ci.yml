@@ -7,7 +7,7 @@ on:
 
 jobs:
   validate:
-    name: Validate (Node ${{ matrix.node }})
+    name: Lint & test (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -26,10 +26,35 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Syntax-check connect.mjs
-        run: node --check connect.mjs
+      - name: Lint (syntax-check all sources)
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
 
       - name: Validate JSON files
         run: |
-          node -e "JSON.parse(require('fs').readFileSync('package.json', 'utf8')); console.log('package.json: valid JSON')"
-          node -e "const p = JSON.parse(require('fs').readFileSync('projects.json', 'utf8')); if (!Array.isArray(p)) { throw new Error('projects.json must be a JSON array'); } console.log('projects.json: valid JSON array')"
+          node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('package.json OK')"
+          node -e "const p=JSON.parse(require('fs').readFileSync('projects.json','utf8')); if(!Array.isArray(p)) throw new Error('projects.json must be an array'); console.log('projects.json OK')"
+
+  build-smoke:
+    name: Packaging smoke (Linux, no publish)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Regenerate icon (verify generator)
+        run: npm run icon
+
+      - name: electron-builder --dir (pack only, no installers)
+        run: npx --no-install electron-builder --linux dir --publish never

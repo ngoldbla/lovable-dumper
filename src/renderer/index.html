@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Strict CSP: the renderer loads only local assets and never talks to the
+         network directly (all network goes through the Node main process). -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; style-src 'self'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lovable Dumper</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <!-- ───────────── progress rail ───────────── -->
+      <aside class="rail">
+        <div class="brand">
+          <div class="brand-mark">LD</div>
+          <div class="brand-text">
+            <span class="brand-name">lovable</span>
+            <span class="brand-sub">dumper</span>
+          </div>
+        </div>
+
+        <nav class="steps" id="steps">
+          <button class="step" data-go="boot" disabled>
+            <span class="step-idx">01</span><span class="step-label">Welcome</span>
+          </button>
+          <button class="step" data-go="auth" disabled>
+            <span class="step-idx">02</span><span class="step-label">GitHub</span>
+          </button>
+          <button class="step" data-go="select" disabled>
+            <span class="step-idx">03</span><span class="step-label">Projects</span>
+          </button>
+          <button class="step" data-go="run" disabled>
+            <span class="step-idx">04</span><span class="step-label">Connect</span>
+          </button>
+          <button class="step" data-go="summary" disabled>
+            <span class="step-idx">05</span><span class="step-label">Done</span>
+          </button>
+        </nav>
+
+        <div class="rail-foot">
+          <div class="auth-chip" id="authChip" hidden>
+            <span class="dot"></span>
+            <span id="authChipText">not connected</span>
+          </div>
+          <div class="updateflag" id="updateFlag" hidden>update ready · restart</div>
+        </div>
+      </aside>
+
+      <!-- ───────────── stage ───────────── -->
+      <main class="stage">
+        <div class="scanlines" aria-hidden="true"></div>
+
+        <!-- BOOT -->
+        <section class="screen is-active" data-screen="boot">
+          <div class="screen-inner">
+            <p class="eyebrow">desktop edition</p>
+            <h1 class="display">
+              Bulk-connect your<br /><span class="accent">Lovable</span> projects to GitHub.
+            </h1>
+            <p class="lede">
+              Point it at your Lovable account, pick the projects, and it clicks
+              through the Connect-to-GitHub flow for you — then tidies every new
+              repo with an <code>lv-</code> prefix. No command line. No
+              <code>gh</code>. No API keys to wrangle.
+            </p>
+
+            <ul class="ticks">
+              <li>Drives a real browser window you can watch</li>
+              <li>Stores your GitHub token in the OS keychain</li>
+              <li>Resumable — re-run any time and it skips finished work</li>
+            </ul>
+
+            <div class="boot-progress" id="bootProgress" hidden>
+              <div class="bar-label">
+                <span id="bootProgressLabel">Preparing the browser engine…</span>
+                <span id="bootProgressPct" class="mono">0%</span>
+              </div>
+              <div class="bar"><div class="bar-fill" id="bootProgressFill"></div></div>
+              <p class="hint">First run downloads Chromium (~280&nbsp;MB) once.</p>
+            </div>
+
+            <div class="actions">
+              <button class="btn btn-primary" id="bootStart">
+                Get started <span class="arrow">→</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- AUTH -->
+        <section class="screen" data-screen="auth">
+          <div class="screen-inner">
+            <p class="eyebrow">step 02 — authorize</p>
+            <h2 class="display sm">Connect your GitHub account</h2>
+            <p class="lede">
+              Lovable Dumper needs permission to create and rename repositories on
+              your behalf. Your token is stored locally, encrypted by your OS.
+            </p>
+
+            <div class="signedin" id="signedIn" hidden>
+              <div class="signedin-row">
+                <span class="dot ok"></span>
+                <span>Signed in as <strong id="signedInLogin" class="mono"></strong></span>
+              </div>
+              <div class="actions">
+                <button class="btn btn-ghost" id="logoutBtn">Sign out</button>
+                <button class="btn btn-primary" id="authContinue">
+                  Continue <span class="arrow">→</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="authbox" id="authBox">
+              <div class="tabs" role="tablist">
+                <button class="tab is-active" data-tab="pat" role="tab">
+                  Personal access token
+                </button>
+                <button class="tab" data-tab="device" role="tab" id="deviceTabBtn">
+                  Device login
+                </button>
+              </div>
+
+              <!-- PAT -->
+              <div class="tabpane is-active" data-pane="pat">
+                <ol class="steps-inline">
+                  <li>
+                    Open
+                    <button class="linklike" id="patLink">github.com/settings/tokens</button>
+                    and create a <em>classic</em> token.
+                  </li>
+                  <li>Give it the <code>repo</code> scope.</li>
+                  <li>Paste it below.</li>
+                </ol>
+                <div class="field">
+                  <input
+                    type="password"
+                    id="patInput"
+                    class="input mono"
+                    placeholder="ghp_••••••••••••••••••••••••••••••••"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                  <button class="btn btn-primary" id="patSubmit">Save token</button>
+                </div>
+                <p class="err" id="patErr" hidden></p>
+              </div>
+
+              <!-- DEVICE -->
+              <div class="tabpane" data-pane="device">
+                <div id="deviceIdle">
+                  <p class="lede sm">
+                    We'll show you a short code to enter on GitHub — no copy-pasting
+                    tokens.
+                  </p>
+                  <button class="btn btn-primary" id="deviceStart">
+                    Start device login
+                  </button>
+                  <p class="hint" id="deviceUnavailable" hidden>
+                    Device login isn't configured for this build yet. Use a personal
+                    access token instead.
+                  </p>
+                </div>
+                <div id="deviceActive" hidden>
+                  <p class="lede sm">Enter this code at the link below:</p>
+                  <div class="usercode mono" id="userCode">····-····</div>
+                  <button class="btn btn-primary" id="deviceOpen">
+                    Open GitHub to enter the code <span class="arrow">↗</span>
+                  </button>
+                  <p class="status waiting" id="deviceStatus">
+                    <span class="spinner"></span> Waiting for authorization…
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SELECT -->
+        <section class="screen" data-screen="select">
+          <div class="screen-inner">
+            <p class="eyebrow">step 03 — choose</p>
+            <h2 class="display sm">Pick the projects to connect</h2>
+
+            <div class="orgrow">
+              <label class="lbl" for="orgInput">GitHub owner</label>
+              <input id="orgInput" class="input mono" placeholder="your-github-username" />
+              <span class="lbl-hint">repos are created under this account or org</span>
+            </div>
+
+            <div class="discoverbar">
+              <button class="btn btn-primary" id="discoverBtn">
+                Discover my Lovable projects
+              </button>
+              <input
+                id="filterInput"
+                class="input filter"
+                placeholder="filter…"
+                hidden
+              />
+            </div>
+
+            <div class="login-banner" id="loginBanner" hidden>
+              <div>
+                <strong>Log into Lovable</strong> in the browser window that just
+                opened, then click&nbsp;→
+              </div>
+              <button class="btn btn-primary sm" id="confirmLoginBtn">
+                I've logged in
+              </button>
+            </div>
+
+            <div class="projects" id="projects" hidden>
+              <div class="projects-head">
+                <label class="check-all">
+                  <input type="checkbox" id="selectAll" /> <span id="selCount">0 selected</span>
+                </label>
+                <div class="opts">
+                  <label class="toggle">
+                    <input type="checkbox" id="optDry" /> <span>Dry run</span>
+                  </label>
+                  <label class="toggle">
+                    <input type="checkbox" id="optRetry" /> <span>Retry failed</span>
+                  </label>
+                  <label class="toggle">
+                    <input type="checkbox" id="optRenameOnly" /> <span>Rename only</span>
+                  </label>
+                </div>
+              </div>
+              <ul class="project-list" id="projectList"></ul>
+              <div class="actions">
+                <button class="btn btn-primary lg" id="runBtn" disabled>
+                  Connect &amp; rename <span class="count-badge" id="runCount">0</span>
+                </button>
+              </div>
+            </div>
+
+            <p class="empty" id="projectsEmpty" hidden>
+              No projects found yet. Run discovery above.
+            </p>
+          </div>
+        </section>
+
+        <!-- RUN -->
+        <section class="screen" data-screen="run">
+          <div class="screen-inner wide">
+            <div class="run-head">
+              <div>
+                <p class="eyebrow">step 04 — working</p>
+                <h2 class="display sm" id="runPhase">Connecting projects…</h2>
+              </div>
+              <button class="btn btn-danger" id="cancelBtn">Cancel</button>
+            </div>
+
+            <div class="run-grid">
+              <div class="statuscol">
+                <table class="status-table">
+                  <thead>
+                    <tr><th>Project</th><th>Connect</th><th>Repo</th><th>Rename</th></tr>
+                  </thead>
+                  <tbody id="statusBody"></tbody>
+                </table>
+              </div>
+              <div class="logcol">
+                <div class="log-head">
+                  <span>activity log</span><span class="led"></span>
+                </div>
+                <pre class="log" id="log"></pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SUMMARY -->
+        <section class="screen" data-screen="summary">
+          <div class="screen-inner">
+            <p class="eyebrow">all done</p>
+            <h2 class="display sm">Run complete</h2>
+            <div class="counts">
+              <div class="count"><span class="n mono" id="cConnected">0</span><span class="k">connected</span></div>
+              <div class="count"><span class="n mono" id="cRenamed">0</span><span class="k">renamed</span></div>
+              <div class="count"><span class="n mono" id="cSkipped">0</span><span class="k">skipped</span></div>
+              <div class="count fail"><span class="n mono" id="cFailed">0</span><span class="k">failed</span></div>
+            </div>
+            <p class="lede" id="summaryNote"></p>
+            <div class="actions">
+              <button class="btn btn-ghost" id="summaryBack">Back to projects</button>
+              <button class="btn btn-primary" id="summaryDone">Finish</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
