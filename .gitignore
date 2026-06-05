@@ -1,6 +1,9 @@
 node_modules/
 browser-data/
 state.json
+github-token
+github-token.enc
+dist/
 .playwright-mcp/
 .context/
 *.log

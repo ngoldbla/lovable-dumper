@@ -5,6 +5,7 @@
   "description": "Automate connecting Lovable projects to GitHub and renaming repos",
   "license": "MIT",
   "author": "Dylan Goldblatt",
+  "main": "src/main/index.cjs",
   "homepage": "https://github.com/ngoldbla/lovable-dumper#readme",
   "repository": {
     "type": "git",
@@ -18,8 +19,13 @@
     "github",
     "playwright",
     "automation",
-    "cli"
+    "cli",
+    "electron",
+    "desktop"
   ],
+  "bin": {
+    "lovable-dumper": "connect.mjs"
+  },
   "engines": {
     "node": ">=18"
   },
@@ -28,9 +34,22 @@
     "dry-run": "node connect.mjs --dry-run",
     "rename-only": "node connect.mjs --rename-only",
     "discover": "node connect.mjs --discover",
-    "lint": "node --check connect.mjs"
+    "test": "node --test",
+    "lint": "node scripts/lint.mjs",
+    "icon": "node scripts/make-icon.mjs",
+    "electron": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux"
   },
   "dependencies": {
-    "playwright": "^1.50.0"
+    "electron-updater": "^6.8.0",
+    "playwright-core": "^1.50.0"
+  },
+  "devDependencies": {
+    "electron": "^42.3.3",
+    "electron-builder": "^26.0.0"
   }
 }

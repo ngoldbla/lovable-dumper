@@ -1,0 +1,73 @@
+name: Release
+
+# Builds installers on each native OS and uploads them to the GitHub Release
+# (a draft by default — see electron-builder.yml; the maintainer reviews and
+# publishes).
+#
+# Invoked two ways:
+#   • workflow_call — from release-please.yml in the same run when a release is
+#     created (the normal path; avoids the GITHUB_TOKEN anti-recursion rule that
+#     stops a token-pushed tag from triggering another workflow).
+#   • push tag v*.*.* — manual fallback when a maintainer pushes a tag with their
+#     own credentials.
+on:
+  workflow_call: {}
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-mac:
+    name: Build macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build & publish (dmg + zip, arm64 + x64)
+        run: npx --no-install electron-builder --mac --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Code signing (Phase B): set these repo secrets to enable. When unset,
+          # electron-builder builds unsigned and skips notarization.
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+  build-win:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build & publish (nsis)
+        run: npx --no-install electron-builder --win --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build & publish (AppImage + deb)
+        run: npx --no-install electron-builder --linux --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
