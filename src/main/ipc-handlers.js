@@ -20,6 +20,7 @@ import {
 } from "../engine/github-auth.js";
 import { ensureBrowser } from "../engine/browser-install.js";
 import { Runner } from "./runner.js";
+import { createLazyCipher } from "./cipher.js";
 
 // The OAuth App client_id is public by design for device flow (no secret). It is
 // empty until the maintainer registers the OAuth App; while empty, the UI offers
@@ -33,10 +34,12 @@ export function registerIpcHandlers({ getWindow, userDataPath }) {
     if (win && !win.isDestroyed()) win.webContents.send(channel, payload);
   };
   const runner = new Runner({ send });
-  const cipher = makeCipher();
+  // Lazy: the keychain is never touched until a token is actually read/written,
+  // so a fresh no-token launch raises no macOS Keychain prompt. See cipher.js.
+  const cipher = createLazyCipher(() => safeStorage);
   let pollAbort = null;
 
-  const getToken = () => loadToken(basePath, cipher?.decrypt);
+  const getToken = () => loadToken(basePath, cipher.decrypt);
   const emitEngine = (evt) => send("engine-event", evt);
 
   // --- auth -----------------------------------------------------------------
@@ -59,7 +62,7 @@ export function registerIpcHandlers({ getWindow, userDataPath }) {
 
   ipcMain.handle("ld:submitPAT", async (_e, token) => {
     const login = await resolveUsername(token); // throws on an invalid token
-    saveToken(basePath, token, cipher?.encrypt);
+    saveToken(basePath, token, cipher.resolveEncrypt());
     send("auth-update", { authenticated: true, login });
     return { login };
   });
@@ -90,7 +93,7 @@ export function registerIpcHandlers({ getWindow, userDataPath }) {
     )
       .then(async (token) => {
         if (myAbort.aborted) return; // superseded or logged out
-        saveToken(basePath, token, cipher?.encrypt);
+        saveToken(basePath, token, cipher.resolveEncrypt());
         const login = await resolveUsername(token);
         send("auth-update", { authenticated: true, login });
       })
@@ -183,21 +186,6 @@ async function resolveOrg(explicitOrg, token) {
     } catch {
       /* leave null — the engine surfaces the missing-org/token condition */
     }
-  }
-  return null;
-}
-
-/** safeStorage-backed token cipher, or null to fall back to a 0600 plaintext file. */
-function makeCipher() {
-  try {
-    if (safeStorage.isEncryptionAvailable()) {
-      return {
-        encrypt: (plain) => safeStorage.encryptString(plain),
-        decrypt: (buf) => safeStorage.decryptString(buf),
-      };
-    }
-  } catch {
-    /* not available — fall through */
   }
   return null;
 }
