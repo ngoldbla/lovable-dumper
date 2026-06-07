@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/ngoldbla/lovable-dumper/compare/v1.1.1...v1.1.2) (2026-06-07)
+
+
+### Bug Fixes
+
+* **macos:** stop startup Keychain prompt by deferring safeStorage ([#6](https://github.com/ngoldbla/lovable-dumper/issues/6)) ([9f7ea0e](https://github.com/ngoldbla/lovable-dumper/commit/9f7ea0ec94e6277944d171a77e80fc804950e945))
+
 ## [1.1.1](https://github.com/ngoldbla/lovable-dumper/compare/v1.1.0...v1.1.1) (2026-06-07)
 
 
