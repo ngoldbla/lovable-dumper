@@ -30,17 +30,36 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Build & publish (dmg + zip, arm64 + x64)
-        run: npx --no-install electron-builder --mac --publish always
+      # Decide signed vs unsigned WITHOUT passing an empty CSC_LINK to electron-builder:
+      # an unset secret expands to "" and electron-builder resolves it as a cert path
+      # (-> the cwd -> "not a file" -> build fails). So we branch on the secret instead.
+      - name: Detect macOS signing secrets
+        id: signing
+        env:
+          MAC_CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+        run: |
+          if [ -n "$MAC_CSC_LINK" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::MAC_CSC_LINK not set — building UNSIGNED macOS artifacts (Gatekeeper will warn users)."
+          fi
+      - name: Build & publish (signed + notarized, dmg + zip, arm64 + x64)
+        if: steps.signing.outputs.enabled == 'true'
+        run: npx --no-install electron-builder --mac --publish always -c.mac.notarize=true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Code signing (Phase B): set these repo secrets to enable. When unset,
-          # electron-builder builds unsigned and skips notarization.
           CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      - name: Build & publish (unsigned fallback, dmg + zip, arm64 + x64)
+        if: steps.signing.outputs.enabled == 'false'
+        run: npx --no-install electron-builder --mac --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
   build-win:
     name: Build Windows

@@ -4,7 +4,10 @@
   "type": "module",
   "description": "Automate connecting Lovable projects to GitHub and renaming repos",
   "license": "MIT",
-  "author": "Dylan Goldblatt",
+  "author": {
+    "name": "Dylan Goldblatt",
+    "email": "ngoldbla@users.noreply.github.com"
+  },
   "main": "src/main/index.cjs",
   "homepage": "https://github.com/ngoldbla/lovable-dumper#readme",
   "repository": {
