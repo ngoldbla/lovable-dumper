@@ -6,9 +6,10 @@
 #     resolves files on disk, which fails from inside the compressed asar.
 #   • Chromium is NOT bundled; it is downloaded at runtime into userData, so
 #     nothing browser-related needs packing/unpacking here.
-#   • GitHub releases default to "draft" (electron-builder default) — the tagged
-#     CI run uploads artifacts to a draft Release that the maintainer reviews and
-#     publishes. (Auto-update on Windows/Linux requires the release be published.)
+#   • releaseType is "release" (NOT electron-builder's "draft" default): release-please
+#     creates the GitHub Release as already-published when the Release PR merges, so
+#     electron-builder must publish to that same release type — otherwise it refuses
+#     with "existing type not compatible with publishing type" and uploads nothing.
 
 appId: com.ngoldbla.lovable-dumper
 productName: Lovable Dumper
@@ -35,6 +36,7 @@ publish:
   - provider: github
     owner: ngoldbla
     repo: lovable-dumper
+    releaseType: release
 
 mac:
   icon: build/icon.png
